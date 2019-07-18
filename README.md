@@ -1,4 +1,5 @@
-# VotingMechanism
+# VotingMechanism: Engaging ERC20 token holders in decision-making
+
 
 How it works:
 
