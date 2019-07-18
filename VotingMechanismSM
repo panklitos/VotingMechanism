@@ -1,0 +1,162 @@
+// VotingMechanism for existing ERC20 token
+// Vote only if you own tokens 
+// Reward mechanism was added
+// Able to set bonus and reward address
+// Current version:0.4.16-nightly.2017.8.9+commit.81887bc7.Emscripten.clang
+// Author Panayiotis Christodoulou - All rights reserved
+
+
+contract owned {
+    address public owner;
+
+    function owned() public {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner {
+        require(msg.sender == owner);
+        _;
+    }
+
+    function transferOwnership(address newOwner) onlyOwner public {
+        owner = newOwner;
+    }
+}
+
+contract tokenRecipient {
+    event receivedEther(address sender, uint amount);
+    event receivedTokens(address _from, uint256 _value, address _token, bytes _extraData);
+}
+
+contract Token {
+    uint256 public totalSupply;
+    mapping (address => uint256) public balanceOf;
+    mapping (address => uint256) public timeOf;
+    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success);
+    mapping (address => mapping (address => uint256)) public allowance;
+    
+}
+
+/**
+ * The shareholder association contract itself
+ */
+contract votingMechanism is owned, tokenRecipient {
+
+    
+    Token sharesTokenAddress;
+
+
+    
+    // Modifier that allows only shareholders to vote and create new proposals
+    
+
+    /**
+     * Constructor function
+     *
+     * First time setup
+     */
+    function votingMechanism(Token sharesAddress) payable public {
+        sharesTokenAddress = Token(sharesAddress);
+       }
+       
+          struct Poll{
+       string pollname;
+       uint enddate;
+       string option1;
+       string option2;
+       string option3;
+       string option4;
+   } 
+  
+  struct Vote{
+       string pollname;
+       uint numberofvotes1;
+       uint numberofvotes2;
+       uint numberofvotes3;
+       uint numberofvotes4;
+  }
+   
+   Poll[] public polls;
+   Vote[] public votes;
+   
+   uint public counter;
+   uint public bonus;
+   address addressreward;
+   
+   uint[] public voterlist;
+   address[] public voteraddress;
+   
+   
+   
+   
+   
+   function createPoll(string _pollname, uint _enddate, string _option1, string _option2, string _option3, string _option4){
+       require(msg.sender==owner);
+       polls.length++;
+       votes.length++;
+       polls[polls.length-1].pollname = _pollname;
+       votes[votes.length-1].pollname = _pollname;
+       polls[polls.length-1].enddate = _enddate;
+       polls[polls.length-1].option1 = _option1;
+       polls[polls.length-1].option2 = _option2;
+       polls[polls.length-1].option3 = _option3;
+       polls[polls.length-1].option4 = _option4;
+   }
+   
+  function voting(uint index, uint voteoption) public{
+      bool status = false;
+      require ((voteoption>=1) && (voteoption<=3));
+      for (uint i=0; i<voterlist.length; i++){
+          if ((voterlist[i]==index) && (voteraddress[i]==msg.sender))
+          status=true;
+      }
+     
+      
+      require(status==false);
+      require(now<polls[index].enddate);
+      require(sharesTokenAddress.balanceOf(msg.sender)>0);
+      // counting votes
+      if (voteoption==1)
+      votes[index].numberofvotes1 = votes[index].numberofvotes1+1;
+      else if (voteoption==2)
+      votes[index].numberofvotes2 = votes[index].numberofvotes2+1;
+       else if (voteoption==3)
+      votes[index].numberofvotes3 = votes[index].numberofvotes3+1;
+       else if (voteoption==4)
+      votes[index].numberofvotes4 = votes[index].numberofvotes4+1;
+      
+      voteraddress.push(msg.sender);
+      voterlist.push(index);
+      
+      // Rewards
+      sharesTokenAddress.transferFrom(addressreward, msg.sender, bonus);
+      
+
+  }
+  
+  function setBonus(uint _bonus) {
+      require(msg.sender==owner);
+      bonus = _bonus;
+  }
+  
+  function setRewardAddress(address _addressreward) {
+      require(msg.sender==owner);
+      addressreward = _addressreward;
+  }
+  
+  function getPolls(uint index) public constant returns(string, string, string,string,string) {
+        return (polls[index].pollname, polls[index].option1, polls[index].option2, polls[index].option3, polls[index].option4); 
+  }
+  function getVotes(uint index) public constant returns(string, uint, uint,uint,uint) {
+        return (votes[index].pollname, votes[index].numberofvotes1, votes[index].numberofvotes2, votes[index].numberofvotes3, votes[index].numberofvotes4);
+
+      
+  }
+  
+  function getVoters() public constant returns(address[]) {
+        return (voteraddress);
+  }
+
+}
+
+
